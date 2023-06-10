@@ -1,0 +1,4 @@
+.custom-tree-item input[type="checkbox"] {
+  visibility: visible;
+  margin-right: 5px;
+}

@@ -1,0 +1,176 @@
+{
+  "name": "low-code-generator",
+  "displayName": "low-code-generator",
+  "description": "generate code",
+  "version": "0.0.1",
+  "icon": "images/logo.png",
+  "publisher": "raul",
+  "enabledApiProposals": [
+    "treeItemCheckbox"
+  ],
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:low-code-generator.helloWorld",
+    "onStartup",
+    "onCommand:low-code-generator.getSelectedFiles",
+    "onCommand:low-code-generator.showFileExplorer"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "low-code-generator",
+          "title": "Low code generator",
+          "icon": "images/logo.png"
+        }
+      ]
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "templates",
+          "name": "templates",
+          "initialSize": 0.5
+        }
+      ],
+      "low-code-generator": [
+        {
+          "id": "playground",
+          "name": "playground",
+          "initialSize": 1
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "playground",
+        "contents": "No '.mongodb' .\n[Generate Code](command:low-code-generator.generate)"
+      }
+    ],
+    "commands": [
+      {
+        "command": "low-code-generator.helloWorld",
+        "title": "Hello World"
+      },
+      {
+        "command": "low-code-generator.getSelectedFiles",
+        "title": "Selected files"
+      },
+      {
+        "command": "onCommand:low-code-generator.showFileExplorer",
+        "title": "show fileExplorer"
+      },
+      {
+        "category": "Low code generator",
+        "command": "template.add",
+        "title": "Add template",
+        "icon": "$(diff-insert)"
+      },
+      {
+        "category": "Low code generator",
+        "command": "template.listTemplates",
+        "title": "List templates",
+        "icon": "$(list-ordered)"
+      },
+      {
+        "category": "Low code generator",
+        "command": "template.selectAll",
+        "title": "Select all",
+        "icon": "$(issue-closed)"
+      },
+      {
+        "category": "Low code generator",
+        "command": "template.selectDefault",
+        "title": "Select default",
+        "icon": "$(star-add)"
+      },
+      {
+        "category": "Low code generator",
+        "command": "low-code-generator.generate",
+        "title": "Generate code",
+        "icon": "$(symbol-event)"
+      },
+      {
+        "command": "extension.generate-low-code",
+        "title": "Generate low code",
+        "icon": "assets/logo.png"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "extension.generate-low-code",
+          "group": "templateGroup@1",
+          "when": "explorerResourceIsFolder"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "template.add",
+          "when": "view == templates",
+          "group": "navigation"
+        },
+        {
+          "command": "template.listTemplates",
+          "when": "view == templates",
+          "group": "navigation"
+        },
+        {
+          "command": "low-code-generator.generate",
+          "when": "view == templates",
+          "group": "navigation"
+        },
+        {
+          "command": "template.selectAll",
+          "when": "view == templates",
+          "group": "navigation"
+        },
+        {
+          "command": "template.selectDefault",
+          "when": "view == templates",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "postinstall": "npm update-dts",
+    "update-dts": "cd \"src/@types\" && npx vscode-dts main && npx vscode-dts dev",
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.0.0",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "16.x",
+    "@types/vscode": "^1.74.0",
+    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/parser": "^5.45.0",
+    "@vscode/test-electron": "^2.2.0",
+    "eslint": "^8.28.0",
+    "glob": "^8.0.3",
+    "mocha": "^10.1.0",
+    "ts-loader": "^9.4.1",
+    "typescript": "^4.9.3",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.0"
+  },
+  "dependencies": {
+    "@types/fs-extra": "^11.0.1",
+    "fs-extra": "^11.1.0",
+    "generate-template-files": "^3.2.1"
+  }
+}
