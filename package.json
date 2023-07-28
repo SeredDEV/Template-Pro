@@ -5,9 +5,6 @@
   "version": "0.0.1",
   "icon": "images/logo.png",
   "publisher": "raul",
-  "enabledApiProposals": [
-    "treeItemCheckbox"
-  ],
   "engines": {
     "vscode": "^1.75.0"
   },

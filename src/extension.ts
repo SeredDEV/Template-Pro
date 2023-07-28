@@ -10,7 +10,7 @@ import { exec } from 'child_process';
 import { CaseConverterEnum, generateTemplateFilesBatch } from 'generate-template-files';
 import { emit } from 'process';
 
-class CustomFileNode extends vscode.TreeItem2 {
+class CustomFileNode implements  vscode.TreeItem2 {
     checkboxState?: { state: vscode.TreeItemCheckboxState; tooltip?: string; };
     children: CustomFileNode[] = [];
     constructor(
@@ -20,8 +20,7 @@ class CustomFileNode extends vscode.TreeItem2 {
         public readonly isDirectory: boolean = false,
         public readonly command?: vscode.Command,
     ) {
-        super(label, collapsibleState);
-
+        this.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
         this.checkboxState = { state: vscode.TreeItemCheckboxState.Unchecked };
         // if (isDirectory) {
         //     this.checkboxState = { state: vscode.TreeItemCheckboxState.Unchecked };
