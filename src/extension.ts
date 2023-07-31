@@ -10,7 +10,7 @@ import { exec } from 'child_process';
 import { CaseConverterEnum, generateTemplateFilesBatch } from 'generate-template-files';
 import { emit } from 'process';
 
-class CustomFileNode implements  vscode.TreeItem2 {
+class CustomFileNode implements vscode.TreeItem2 {
     checkboxState?: { state: vscode.TreeItemCheckboxState; tooltip?: string; };
     children: CustomFileNode[] = [];
     constructor(
@@ -210,13 +210,32 @@ export function activate(context: vscode.ExtensionContext) {
                 });
             });
     });
+
+    vscode.commands.registerCommand('low-code-generator.generate', () => {
+        const generateOptions = [
+            'Generate selected files',
+            'Generate project'
+        ];
+        const types={
+            'Generate selected files': 'ONLY_SELECTED',
+            'Generate project': 'PROJECT'
+        }
+        vscode.window.showQuickPick(generateOptions, { placeHolder: 'Seleccione una opción' })
+            .then((selectedOption) => {
+                if (!selectedOption) {
+                    return;
+                }
+                const type = types[selectedOption];
+                generateLowCode(selectedTemplate, fileExplorerProvider,undefined, type);
+            });
+    });
     vscode.commands.registerCommand('low-code-generator.getSelectedFiles', () => {
         const test = fileExplorerProvider.getSelectedFiles();
         vscode.window.showInformationMessage(test.toString());
     })
-    vscode.commands.registerCommand('low-code-generator.generate', async () => {
-        await generateLowCode(selectedTemplate,fileExplorerProvider,undefined);
-    });
+    // vscode.commands.registerCommand('low-code-generator.generate', async () => {
+    //     await generateLowCode(selectedTemplate, fileExplorerProvider, undefined);
+    // });
 
     vscode.commands.registerCommand('template.selectAll', async (node: CustomFileNode) => {
         fileExplorerProvider.selectAll();
@@ -244,10 +263,10 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showErrorMessage('Not exist a template selected');
             return;
         }
-        await generateLowCode(selectedTemplate,fileExplorerProvider,uri.fsPath);
+        await generateLowCode(selectedTemplate, fileExplorerProvider, uri.fsPath);
     });
 }
-function generateTemplateGenerator(outputPath: string, entity: string, module: string) {
+function generateTemplateGenerator(outputPath: string, replacers: any) {
     generateTemplateFilesBatch(
         [
             {
@@ -256,13 +275,10 @@ function generateTemplateGenerator(outputPath: string, entity: string, module: s
                 entry: {
                     folderPath: `${__dirname}/template`,
                 },
-                dynamicReplacers: [
-                    { slot: '__entity__', slotValue: entity },
-                    { slot: '__module__', slotValue: module }
-                ],
+                dynamicReplacers: replacers,
                 output: {
                     overwrite: true,
-                    path: `${outputPath}/__module__(snakeCase)/__entity__(snakeCase)`,
+                    path: outputPath,
                     pathAndFileNameDefaultCase: CaseConverterEnum.KebabCase,
                 },
             },
@@ -273,7 +289,7 @@ function generateTemplateGenerator(outputPath: string, entity: string, module: s
     });
 }
 
-async function generateLowCode(selectedTemplate: Template | undefined, fileExplorerProvider: FileExplorerProvider, targetPath: string) {
+async function generateLowCode(selectedTemplate: Template | undefined, fileExplorerProvider: FileExplorerProvider, targetPath: string, type = 'PROJECT') {
     if (selectedTemplate === undefined) {
         vscode.window.showErrorMessage('Not exist a template selected');
     }
@@ -295,21 +311,7 @@ async function generateLowCode(selectedTemplate: Template | undefined, fileExplo
     } catch (error) {
         console.error(error);
     }
-
-    const entity = await vscode.window.showInputBox({
-        placeHolder: "Enter name for entity"
-    });
-    if (!entity) {
-        return;
-    }
-
-    const module = await vscode.window.showInputBox({
-        placeHolder: "Enter name for module"
-    });
-    if (!module) {
-        return;
-    }
-    if (!targetPath) {
+    if (!targetPath && type==='PROJECT') {
         const options: vscode.OpenDialogOptions = {
             defaultUri: vscode.workspace.workspaceFolders[0].uri,
             canSelectMany: false,
@@ -324,8 +326,57 @@ async function generateLowCode(selectedTemplate: Template | undefined, fileExplo
         }
         targetPath = folderPath[0].path;
     }
+    let project;
+    let module;
+    let entity;
+    switch (type) {
+        case 'PROJECT':
+            project = await vscode.window.showInputBox({
+                placeHolder: "Enter name for project"
+            });
+            if (!project) {
+                return;
+            }
+            generateTemplateGenerator(
+                `${vscode.workspace.workspaceFolders[0].uri.path}/__project__(snakeCase)`
+                , [
+                { slot: '__project__', slotValue: project },
+            ]);
+            break;
+        case 'ONLY_SELECTED':
+            entity = await vscode.window.showInputBox({
+                placeHolder: "Enter name for entity"
+            });
+            if (!entity) {
+                return;
+            }
+            generateTemplateGenerator(
+                `${vscode.workspace.workspaceFolders[0].uri.path}`
+                , [
+                { slot: '__entity__', slotValue: entity },
+            ]);
+            break;
+        case 'MODULE':
+            module = await vscode.window.showInputBox({
+                placeHolder: "Enter name for module"
+            });
+            if (!module) {
+                return;
+            }
+            generateTemplateGenerator(
+                `${targetPath}/__module__(snakeCase)/__entity__(snakeCase)`
+                , [
+                { slot: '__entity__', slotValue: entity },
+                { slot: '__module__', slotValue: module }
+            ]);
+            break;
 
-    generateTemplateGenerator(targetPath, entity, module)
+        default:
+            break;
+    }
+
+
+    // generateTemplateGenerator(targetPath, entity, module)
     vscode.window.showInformationMessage('Files generated');
 
     console.log("Hello World!")
