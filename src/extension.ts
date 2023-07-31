@@ -2,13 +2,9 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as fse from 'fs-extra'
-
+import * as pathF from 'path';
 import { DefaultTemplateStorage, Storage, Template } from './storage';
-import { fileURLToPath } from 'url';
-import * as path from 'path';
-import { exec } from 'child_process';
 import { CaseConverterEnum, generateTemplateFilesBatch } from 'generate-template-files';
-import { emit } from 'process';
 
 class CustomFileNode implements vscode.TreeItem2 {
     checkboxState?: { state: vscode.TreeItemCheckboxState; tooltip?: string; };
@@ -22,10 +18,19 @@ class CustomFileNode implements vscode.TreeItem2 {
     ) {
         this.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
         this.checkboxState = { state: vscode.TreeItemCheckboxState.Unchecked };
-        // if (isDirectory) {
-        //     this.checkboxState = { state: vscode.TreeItemCheckboxState.Unchecked };
-        // }
+        if (isDirectory) {
+            this.iconPath = {
+                light: vscode.Uri.file(pathF.join(__dirname, '..', 'images', 'folder.png')), // versión clara
+                dark: vscode.Uri.file(pathF.join(__dirname, '..', 'images', 'folder.png'))  // versión oscura
+            };
+        } else {
+            this.iconPath = {
+                light: vscode.Uri.file(pathF.join(__dirname, '..', 'images', 'file.png')), // versión clara
+                dark: vscode.Uri.file(pathF.join(__dirname, '..', 'images', 'file.png')) // versión oscura
+            };
+        }
     }
+    iconPath?: vscode.ThemeIcon | vscode.Uri | { light: vscode.Uri; dark: vscode.Uri };
 }
 
 class FileExplorerProvider implements vscode.TreeDataProvider<CustomFileNode> {
@@ -216,7 +221,7 @@ export function activate(context: vscode.ExtensionContext) {
             'Generate selected files',
             'Generate project'
         ];
-        const types={
+        const types = {
             'Generate selected files': 'ONLY_SELECTED',
             'Generate project': 'PROJECT'
         }
@@ -226,7 +231,7 @@ export function activate(context: vscode.ExtensionContext) {
                     return;
                 }
                 const type = types[selectedOption];
-                generateLowCode(selectedTemplate, fileExplorerProvider,undefined, type);
+                generateLowCode(selectedTemplate, fileExplorerProvider, undefined, type);
             });
     });
     vscode.commands.registerCommand('low-code-generator.getSelectedFiles', () => {
@@ -311,7 +316,7 @@ async function generateLowCode(selectedTemplate: Template | undefined, fileExplo
     } catch (error) {
         console.error(error);
     }
-    if (!targetPath && type==='PROJECT') {
+    if (!targetPath && type === 'PROJECT') {
         const options: vscode.OpenDialogOptions = {
             defaultUri: vscode.workspace.workspaceFolders[0].uri,
             canSelectMany: false,
@@ -340,8 +345,8 @@ async function generateLowCode(selectedTemplate: Template | undefined, fileExplo
             generateTemplateGenerator(
                 `${vscode.workspace.workspaceFolders[0].uri.path}/__project__(snakeCase)`
                 , [
-                { slot: '__project__', slotValue: project },
-            ]);
+                    { slot: '__project__', slotValue: project },
+                ]);
             break;
         case 'ONLY_SELECTED':
             entity = await vscode.window.showInputBox({
@@ -353,8 +358,9 @@ async function generateLowCode(selectedTemplate: Template | undefined, fileExplo
             generateTemplateGenerator(
                 `${vscode.workspace.workspaceFolders[0].uri.path}`
                 , [
-                { slot: '__entity__', slotValue: entity },
-            ]);
+                    { slot: '__entity__', slotValue: entity },
+                    { slot: '__project__', slotValue: vscode.workspace.workspaceFolders[0].uri.path.split('/').pop()}
+                ]);
             break;
         case 'MODULE':
             module = await vscode.window.showInputBox({
@@ -366,9 +372,9 @@ async function generateLowCode(selectedTemplate: Template | undefined, fileExplo
             generateTemplateGenerator(
                 `${targetPath}/__module__(snakeCase)/__entity__(snakeCase)`
                 , [
-                { slot: '__entity__', slotValue: entity },
-                { slot: '__module__', slotValue: module }
-            ]);
+                    { slot: '__entity__', slotValue: entity },
+                    { slot: '__module__', slotValue: module }
+                ]);
             break;
 
         default:
