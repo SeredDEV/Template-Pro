@@ -77,6 +77,12 @@
       },
       {
         "category": "Low code generator",
+        "command": "template.deleteTemplates",
+        "title": "Delete templates",
+        "icon": "$(trash)"
+      },
+      {
+        "category": "Low code generator",
         "command": "template.selectAll",
         "title": "Select all",
         "icon": "$(issue-closed)"
@@ -115,6 +121,11 @@
         },
         {
           "command": "template.listTemplates",
+          "when": "view == templates",
+          "group": "navigation"
+        },
+        {
+          "command": "template.deleteTemplates",
           "when": "view == templates",
           "group": "navigation"
         },

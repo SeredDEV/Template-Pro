@@ -4,34 +4,48 @@ export interface Template {
   path: string;
 }
 
-export class Storage{
+export class Storage {
   private readonly key: string = `low-code-templates`;
   constructor(private memento: Memento) {
 
   }
-  list():Template[] {
+  list(): Template[] {
     return this.memento.get(this.key, []);
   }
-  save(template:Template) {
+  save(template: Template) {
     const list = this.list();
-    for (const iterator of list) {
-      if (iterator.path === template.path) {
-        return 'already exists';
-      }
+    //delete if template.name already exists
+    const index = list.findIndex((element) => element.name === template.name);
+    if (index !== -1) {
+        list.splice(index, 1);
     }
     list.push(template);
     this.memento.update(this.key, list);
   }
+  get(name: string): Template {
+    const list = this.list();
+    for (const iterator of list) {
+      if (iterator.name === name) {
+        return iterator;
+      }
+    }
+    return null;
+  }
+  deleteMany(name: string[]) {
+    const list = this.list();
+    const newList = list.filter(item => !name.includes(item.name));
+    this.memento.update(this.key, newList);
+  }
 }
 
-export class DefaultTemplateStorage{
+export class DefaultTemplateStorage {
   private readonly key: string = `low-code-default-template`;
   constructor(private memento: Memento) {
   }
-  get():Template {
+  get(): Template {
     return this.memento.get(this.key, null);
   }
-  save(template:Template) {
+  save(template: Template) {
     this.memento.update(this.key, template);
   }
 }

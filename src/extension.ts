@@ -5,6 +5,7 @@ import * as fse from 'fs-extra'
 import * as pathF from 'path';
 import { DefaultTemplateStorage, Storage, Template } from './storage';
 import { CaseConverterEnum, generateTemplateFilesBatch } from 'generate-template-files';
+const pattern = /__(\w+?)__(\(\w+Case\)|\w+Case|__|(?=__))?/g
 
 class CustomFileNode implements vscode.TreeItem2 {
     checkboxState?: { state: vscode.TreeItemCheckboxState; tooltip?: string; };
@@ -178,7 +179,13 @@ export function activate(context: vscode.ExtensionContext) {
         if (!name) {
             return;
         }
-
+        const template = storage.get(name);
+        if (template) {
+            const replace = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: `ya existe esa plantilla ${template.name} deseas reemplazar?` });
+            if (!replace || replace === 'No') {
+                return;
+            }
+        }
         const newTemplate = {
             name: name,
             path: folderPath[0].path
@@ -193,6 +200,7 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
         const templateNames = templates.map(template => template.name);
+        // show quick with options to delete 
         vscode.window.showQuickPick(templateNames, { placeHolder: 'Seleccione una plantilla' })
             .then((selectedTemplateName) => {
                 if (!selectedTemplateName) {
@@ -215,7 +223,23 @@ export function activate(context: vscode.ExtensionContext) {
                 });
             });
     });
-
+    vscode.commands.registerCommand('template.deleteTemplates', () => {
+        const templates = storage.list();
+        if (templates.length === 0) {
+            vscode.window.showInformationMessage('No hay plantillas disponibles');
+            return;
+        }
+        const templateNames = templates.map(template => template.name);
+        // show quick with options to delete 
+        vscode.window.showQuickPick(templateNames, { placeHolder: 'Seleccione una plantilla a eliminar', canPickMany: true })
+            .then((selectedTemplateName) => {
+                if (!selectedTemplateName) {
+                    return;
+                }
+                storage.deleteMany(selectedTemplateName);
+            });
+    }
+    );
     vscode.commands.registerCommand('low-code-generator.generate', () => {
         const generateOptions = [
             'Generate selected files',
@@ -268,7 +292,7 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showErrorMessage('Not exist a template selected');
             return;
         }
-        await generateLowCode(selectedTemplate, fileExplorerProvider, uri.fsPath);
+        await generateLowCode(selectedTemplate, fileExplorerProvider, uri.fsPath, 'ONLY_SELECTED');
     });
 }
 function generateTemplateGenerator(outputPath: string, replacers: any) {
@@ -292,6 +316,44 @@ function generateTemplateGenerator(outputPath: string, replacers: any) {
         console.error(error);
         vscode.window.showErrorMessage('Error generating files');
     });
+}
+
+
+function findMatchesInFile(filePath) {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const matches = [...content.matchAll(pattern)];
+    return matches.map(match => match[1]);
+}
+
+let matches = new Set();
+function findPatternsInDirectory(directoryPath) {
+
+    const items = fs.readdirSync(directoryPath);
+    for (const item of items) {
+        const fullPath = pathF.join(directoryPath, item);
+        const stats = fs.statSync(fullPath);
+
+        // Si es un directorio, hacer una búsqueda recursiva
+        if (stats.isDirectory()) {
+            const nameMatches = [...item.matchAll(pattern)].map(match => match[1]);
+
+            matches = new Set([...matches, ...nameMatches]);
+            const dirMatches = findPatternsInDirectory(fullPath);
+        } else {
+            // Si es un archivo, buscar patrones en el contenido del archivo
+            const fileMatches = findMatchesInFile(fullPath);
+            matches = new Set([...matches, ...fileMatches]);
+
+            // También buscar patrones en el nombre del archivo
+            const nameMatches = [...item.matchAll(pattern)].map(match => match[1]);
+            matches = new Set([...matches, ...nameMatches]);
+        }
+    }
+
+    return matches;
+}
+function capitalize(text) {
+    return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 }
 
 async function generateLowCode(selectedTemplate: Template | undefined, fileExplorerProvider: FileExplorerProvider, targetPath: string, type = 'PROJECT') {
@@ -334,6 +396,8 @@ async function generateLowCode(selectedTemplate: Template | undefined, fileExplo
     let project;
     let module;
     let entity;
+    const results = findPatternsInDirectory(copyTemplatePath);
+
     switch (type) {
         case 'PROJECT':
             project = await vscode.window.showInputBox({
@@ -349,18 +413,19 @@ async function generateLowCode(selectedTemplate: Template | undefined, fileExplo
                 ]);
             break;
         case 'ONLY_SELECTED':
-            entity = await vscode.window.showInputBox({
-                placeHolder: "Enter name for entity"
-            });
+            let slots = [];
+            for (const iterator of results) {
+                entity = await vscode.window.showInputBox({
+                    placeHolder: `Enter name for ${capitalize(iterator)}`,
+                });
+                slots.push({ slot: `__${iterator}__`, slotValue: entity })
+            }
             if (!entity) {
                 return;
             }
             generateTemplateGenerator(
-                `${vscode.workspace.workspaceFolders[0].uri.path}`
-                , [
-                    { slot: '__entity__', slotValue: entity },
-                    { slot: '__project__', slotValue: vscode.workspace.workspaceFolders[0].uri.path.split('/').pop()}
-                ]);
+                targetPath ?? `${vscode.workspace.workspaceFolders[0].uri.path}`
+                , slots);
             break;
         case 'MODULE':
             module = await vscode.window.showInputBox({
