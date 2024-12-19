@@ -54,7 +54,7 @@ A powerful Visual Studio Code extension that accelerates your development workfl
 
 ## 📦 Installation Git Manual
 
-1. Git Clone
+1. git clone https://github.com/SeredDEV/Template-Pro
 2. npm i
 3. npm run compile
 4. code --install-extension template-pro-1.0.0.vsix
