@@ -1,35 +1,73 @@
-# Low Code Generator for Visual Studio Code
-A Visual Studio Code extension that simplifies the process of creating applications using a low code approach. This extension allows you to generate code snippets for your application using drag-and-drop components and a simple visual interface.
+# Template Generator Pro for Visual Studio Code
 
-# Features
-Drag-and-drop interface for adding components
-Generates code snippets for different frameworks and libraries
-Customizable templates for code generation
-Supports multiple programming languages
-Integrates seamlessly with Visual Studio Code
-# Installation
-Open Visual Studio Code
-Go to the Extensions view (Ctrl + Shift + X)
-Search for "Low Code Generator" and click the install button
-Reload Visual Studio Code
-Usage
-Open a new or existing file in Visual Studio Code
-Right-click in the editor and select "Generate Code"
-Choose the type of component you want to add to your project
-Configure the component using the visual interface
-Generate the code snippet and paste it into your project
-Supported Frameworks and Libraries
-The Low Code Generator currently supports the following frameworks and libraries:
+A powerful Visual Studio Code extension that accelerates your development workflow by generating code from customizable templates. Perfect for creating boilerplate code, standardized components, and maintaining consistent code patterns across your projects.
 
-React
-Angular
-Vue.js
-Bootstrap
-Foundation
-More frameworks and libraries will be added in future updates.
+## 🚀 Key Features
 
-# Contributing
-We welcome contributions to the Low Code Generator for Visual Studio Code! If you have any ideas for new features or would like to report a bug, please open an issue on the GitHub repository.
+- **Template-Based Code Generation**: Generate consistent code structures from predefined templates
+- **Custom Template Support**: Create and manage your own code templates
+- **Project-Wide Generation**: Generate code across multiple files and folders
+- **Smart Placeholders**: Use dynamic placeholders for flexible code generation
+- **Visual Interface**: Easy-to-use form interface for template parameters
+- **Multi-language Support**: Works with any programming language or framework
 
-# License
-The Low Code Generator for Visual Studio Code is open-source software licensed under the MIT license.
+## 📋 Usage
+
+1. **Add Template**:
+   - Select a folder containing your template files
+   - Give your template a name
+   - Your template is now ready to use
+
+2. **Generate Code**:
+   - Select your template from the list
+   - Choose the files you want to generate
+   - Fill in the template parameters
+   - Code is generated automatically!
+
+## ⚙️ Commands
+
+- `Template: Add` - Add a new template
+- `Template: Generate` - Generate code from selected template
+- `Template: List` - View and manage your templates
+- `Template: Delete` - Remove existing templates
+
+## 🔧 Getting Started
+
+1. Install the extension
+2. Open the command palette (Ctrl+Shift+P / Cmd+Shift+P)
+3. Type "Template" to see available commands
+4. Start with "Template: Add" to add your first template
+
+## 💡 Pro Tips
+
+- Use descriptive names for your templates
+- Organize templates by feature or component type
+- Create templates for common code patterns
+- Use meaningful parameter names
+
+## 📦 Installation Extensiones
+
+1. Open Visual Studio Code
+2. Go to Extensions (Ctrl+Shift+X / Cmd+Shift+X)
+3. Search for "Template Generator Pro"
+4. Click Install
+
+## 📦 Installation Git Manual
+
+1. Git Clone
+2. npm i
+3. npm run compile
+4. code --install-extension template-pro-1.0.0.vsix
+
+## 🤝 Contributing
+
+Found a bug or have a suggestion? We'd love to hear from you! Feel free to:
+
+- Report issues
+- Submit pull requests
+- Suggest new features
+- Share your feedback
+
+## 📄 License
+
+This extension is licensed under the MIT License. See the LICENSE file for details.

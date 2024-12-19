@@ -1,9 +1,14 @@
-# Change Log
+# Changelog
 
-All notable changes to the "low-code-generator" extension will be documented in this file.
+All notable changes to the "Template Generator Pro" extension will be documented in this file.
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+## [1.0.0] - 2024-01-19
 
-## [Unreleased]
+### Added
+- Initial release of Template Generator Pro
+- Template management (add, list, delete templates)
+- Code generation with dynamic parameters
+- Visual interface for parameter input
+- VS Code commands integration
 
-- Initial release
+<!-- [1.0.0]: https://github.com/your-username/your-repository/releases/tag/v1.0.0 -->

@@ -1,29 +1,38 @@
 {
-  "name": "low-code-generator",
-  "displayName": "low-code-generator",
-  "description": "generate code",
-  "version": "0.0.1",
+  "name": "template-pro",
+  "displayName": "Template Pro",
+  "description": "Professional template engine for code generation / Motor profesional de plantillas para generación de código",
+  "version": "1.0.0",
   "icon": "images/logo.png",
-  "publisher": "raul",
+  "publisher": "Sergio Rodriguez",
   "engines": {
     "vscode": "^1.75.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Snippets",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "template",
+    "generator",
+    "code generator",
+    "scaffolding",
+    "boilerplate"
   ],
   "activationEvents": [
-    "onCommand:low-code-generator.helloWorld",
+    "onCommand:template-generator-pro.helloWorld",
     "onStartup",
-    "onCommand:low-code-generator.getSelectedFiles",
-    "onCommand:low-code-generator.showFileExplorer"
+    "onCommand:template-generator-pro.getSelectedFiles",
+    "onCommand:template-generator-pro.showFileExplorer"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "low-code-generator",
-          "title": "Low code generator",
+          "id": "template-pro",
+          "title": "Template Pro",
           "icon": "images/logo.png"
         }
       ]
@@ -32,35 +41,28 @@
       "explorer": [
         {
           "id": "templates",
-          "name": "templates",
+          "name": "Templates-Pro",
           "initialSize": 0.5
-        }
-      ],
-      "low-code-generator": [
-        {
-          "id": "playground",
-          "name": "playground",
-          "initialSize": 1
         }
       ]
     },
     "viewsWelcome": [
       {
-        "view": "playground",
-        "contents": "No '.mongodb' .\n[Generate Code](command:low-code-generator.generate)"
+        "view": "Template-Pro",
+        "contents": "¡Bienvenido a Template Pro!\nHaga clic en '+ Agregar Plantilla' para comenzar.\n[Agregar Plantilla](command:template.add)"
       }
     ],
     "commands": [
       {
-        "command": "low-code-generator.helloWorld",
+        "command": "template-generator-pro.helloWorld",
         "title": "Hello World"
       },
       {
-        "command": "low-code-generator.getSelectedFiles",
+        "command": "template-generator-pro.getSelectedFiles",
         "title": "Selected files"
       },
       {
-        "command": "onCommand:low-code-generator.showFileExplorer",
+        "command": "onCommand:template-generator-pro.showFileExplorer",
         "title": "show fileExplorer"
       },
       {
@@ -95,13 +97,13 @@
       },
       {
         "category": "Low code generator",
-        "command": "low-code-generator.generate",
+        "command": "template-generator-pro.generate",
         "title": "Generate code",
         "icon": "$(symbol-event)"
       },
       {
         "command": "extension.generate-low-code",
-        "title": "Generate low code",
+        "title": "Template Pro",
         "icon": "assets/logo.png"
       }
     ],
@@ -130,7 +132,7 @@
           "group": "navigation"
         },
         {
-          "command": "low-code-generator.generate",
+          "command": "template-generator-pro.generate",
           "when": "view == templates",
           "group": "navigation"
         },
@@ -148,7 +150,7 @@
     }
   },
   "scripts": {
-    "postinstall": "npm update-dts",
+    "postinstall": "npm run update-dts",
     "update-dts": "cd \"src/@types\" && npx vscode-dts main && npx vscode-dts dev",
     "vscode:prepublish": "npm run package",
     "compile": "webpack",

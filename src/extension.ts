@@ -10,6 +10,7 @@ const pattern = /__(\w+?)__(\(\w+Case\)|\w+Case|__|(?=__))?/g
 class CustomFileNode implements vscode.TreeItem2 {
     checkboxState?: { state: vscode.TreeItemCheckboxState; tooltip?: string; };
     children: CustomFileNode[] = [];
+
     constructor(
         public readonly label: string,
         public readonly collapsibleState: vscode.TreeItemCollapsibleState,
@@ -18,39 +19,44 @@ class CustomFileNode implements vscode.TreeItem2 {
         public readonly command?: vscode.Command,
     ) {
         this.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
-        this.checkboxState = { state: vscode.TreeItemCheckboxState.Unchecked };
+        this.checkboxState = {
+            state: vscode.TreeItemCheckboxState.Unchecked,
+            tooltip: isDirectory ? 'No files selected' : 'Not selected'
+        };
+
+        // Configurar iconos
         if (isDirectory) {
             this.iconPath = {
-                light: vscode.Uri.file(pathF.join(__dirname, '..', 'images', 'folder.png')), // versión clara
-                dark: vscode.Uri.file(pathF.join(__dirname, '..', 'images', 'folder.png'))  // versión oscura
+                light: vscode.Uri.file(pathF.join(__dirname, '..', 'images', 'folder.png')),
+                dark: vscode.Uri.file(pathF.join(__dirname, '..', 'images', 'folder.png'))
             };
         } else {
             this.iconPath = {
-                light: vscode.Uri.file(pathF.join(__dirname, '..', 'images', 'file.png')), // versión clara
-                dark: vscode.Uri.file(pathF.join(__dirname, '..', 'images', 'file.png')) // versión oscura
+                light: vscode.Uri.file(pathF.join(__dirname, '..', 'images', 'file.png')),
+                dark: vscode.Uri.file(pathF.join(__dirname, '..', 'images', 'file.png'))
             };
         }
     }
+
     iconPath?: vscode.ThemeIcon | vscode.Uri | { light: vscode.Uri; dark: vscode.Uri };
 }
+
 
 class FileExplorerProvider implements vscode.TreeDataProvider<CustomFileNode> {
     private _onDidChangeTreeData = new vscode.EventEmitter<CustomFileNode | CustomFileNode[] | void>();
     onDidChangeTreeData = this._onDidChangeTreeData.event;
+    nodes: CustomFileNode[] = [];
 
     constructor(private rootPath: string) { }
-    nodes: CustomFileNode[] = [];
+
     refresh(): void {
-        this._onDidChangeTreeData.fire(
-            this.nodes
-        );
+        this._onDidChangeTreeData.fire(this.nodes);
         this.onDidChangeTreeData = this._onDidChangeTreeData.event;
     }
 
     getTreeItem(element: CustomFileNode): vscode.TreeItem {
         return element;
     }
-
 
     getChildren(element?: CustomFileNode): Thenable<CustomFileNode[]> {
         if (!element) {
@@ -62,7 +68,6 @@ class FileExplorerProvider implements vscode.TreeDataProvider<CustomFileNode> {
         }
     }
 
-
     private getFileNodes(rootPath: string): CustomFileNode[] {
         try {
             const files = fs.readdirSync(rootPath);
@@ -70,11 +75,23 @@ class FileExplorerProvider implements vscode.TreeDataProvider<CustomFileNode> {
                 const filePath = `${rootPath}/${file}`;
                 const isDirectory = fs.lstatSync(filePath).isDirectory();
                 if (isDirectory) {
-                    const dirNode = new CustomFileNode(file, vscode.TreeItemCollapsibleState.Collapsed, filePath, true, undefined);
+                    const dirNode = new CustomFileNode(
+                        file,
+                        vscode.TreeItemCollapsibleState.Collapsed,
+                        filePath,
+                        true,
+                        undefined
+                    );
                     dirNode.children = this.getNodesRecursive(filePath);
                     return dirNode;
                 } else {
-                    return new CustomFileNode(file, vscode.TreeItemCollapsibleState.None, filePath, false, undefined);
+                    return new CustomFileNode(
+                        file,
+                        vscode.TreeItemCollapsibleState.None,
+                        filePath,
+                        false,
+                        undefined
+                    );
                 }
             });
         } catch (error) {
@@ -90,11 +107,23 @@ class FileExplorerProvider implements vscode.TreeDataProvider<CustomFileNode> {
                 const filePath = `${dirPath}/${file}`;
                 const isDirectory = fs.lstatSync(filePath).isDirectory();
                 if (isDirectory) {
-                    const dirNode = new CustomFileNode(file, vscode.TreeItemCollapsibleState.Collapsed, filePath, true, undefined);
+                    const dirNode = new CustomFileNode(
+                        file,
+                        vscode.TreeItemCollapsibleState.Collapsed,
+                        filePath,
+                        true,
+                        undefined
+                    );
                     dirNode.children = this.getNodesRecursive(filePath);
                     return dirNode;
                 } else {
-                    return new CustomFileNode(file, vscode.TreeItemCollapsibleState.None, filePath, false, undefined);
+                    return new CustomFileNode(
+                        file,
+                        vscode.TreeItemCollapsibleState.None,
+                        filePath,
+                        false,
+                        undefined
+                    );
                 }
             });
         } catch (error) {
@@ -102,57 +131,96 @@ class FileExplorerProvider implements vscode.TreeDataProvider<CustomFileNode> {
             return [];
         }
     }
+
     getSelectedFiles(): string[] {
         let selectedFiles: string[] = [];
+
         function getSelectedFilesRecursive(node: CustomFileNode) {
-            if (node.checkboxState?.state === vscode.TreeItemCheckboxState.Checked && !node.isDirectory) {
+            if (!node.isDirectory && node.checkboxState?.state === vscode.TreeItemCheckboxState.Checked) {
                 selectedFiles.push(node.path);
             }
             if (node.children) {
                 node.children.forEach(child => getSelectedFilesRecursive(child));
             }
         }
+
         this.nodes.forEach(node => getSelectedFilesRecursive(node));
         return selectedFiles;
     }
 
-
-    private getFilePath(element: CustomFileNode): string {
-        return `${this.rootPath}/${element.label}`;
-    }
-
-    async editFile(node: CustomFileNode) {
-        try {
-            const filePath = node.path;
-            const content = fs.readFileSync(filePath, 'utf-8');
-            const document = await vscode.workspace.openTextDocument({ content });
-            const editor = await vscode.window.showTextDocument(document);
-            const newContent = editor.document.getText();
-            fs.writeFileSync(filePath, newContent);
-        } catch (error) {
-            console.error(error);
-        }
-    }
     selectAll() {
+        const newState = this.nodes[0]?.checkboxState?.state === vscode.TreeItemCheckboxState.Unchecked ?
+            vscode.TreeItemCheckboxState.Checked :
+            vscode.TreeItemCheckboxState.Unchecked;
+
         function selectOrUnselectAllRecursive(node: CustomFileNode, state: vscode.TreeItemCheckboxState) {
-            node.checkboxState = { state: state };
+            node.checkboxState = {
+                state: state,
+                tooltip: node.isDirectory ?
+                    (state === vscode.TreeItemCheckboxState.Checked ? 'All files selected' : 'No files selected') :
+                    (state === vscode.TreeItemCheckboxState.Checked ? 'Selected' : 'Not selected')
+            };
             if (node.children) {
                 node.children.forEach(child => selectOrUnselectAllRecursive(child, state));
             }
         }
-        const state = this.nodes[0].checkboxState?.state === vscode.TreeItemCheckboxState.Unchecked ? vscode.TreeItemCheckboxState.Checked : vscode.TreeItemCheckboxState.Unchecked;
-        this.nodes.forEach(node => selectOrUnselectAllRecursive(node, state));
+
+        this.nodes.forEach(node => selectOrUnselectAllRecursive(node, newState));
         this.refresh();
     }
+
     selectNode(element: [CustomFileNode, vscode.TreeItemCheckboxState]) {
+        function updateParentState(node: CustomFileNode): vscode.TreeItemCheckboxState {
+            if (!node.children || node.children.length === 0) {
+                return node.checkboxState?.state || vscode.TreeItemCheckboxState.Unchecked;
+            }
+
+            const childStates = node.children.map(child =>
+                child.checkboxState?.state || vscode.TreeItemCheckboxState.Unchecked
+            );
+
+            return childStates.every(state => state === vscode.TreeItemCheckboxState.Checked) ?
+                vscode.TreeItemCheckboxState.Checked :
+                vscode.TreeItemCheckboxState.Unchecked;
+        }
+
         function selectOrUnselectRecursive(node: CustomFileNode, state: vscode.TreeItemCheckboxState) {
-            node.checkboxState = { state: state };
-            if (node.children) {
-                node.children.forEach(child => selectOrUnselectRecursive(child, state));
+            if (node.isDirectory) {
+                node.children?.forEach(child => selectOrUnselectRecursive(child, state));
+                const resultState = updateParentState(node);
+                const someChecked = node.children?.some(
+                    child => child.checkboxState?.state === vscode.TreeItemCheckboxState.Checked
+                );
+                node.checkboxState = {
+                    state: resultState,
+                    tooltip: resultState === vscode.TreeItemCheckboxState.Checked ?
+                        'All files selected' :
+                        someChecked ? 'Some files selected' : 'No files selected'
+                };
+            } else {
+                node.checkboxState = {
+                    state: state,
+                    tooltip: state === vscode.TreeItemCheckboxState.Checked ? 'Selected' : 'Not selected'
+                };
             }
         }
+
         selectOrUnselectRecursive(element[0], element[1]);
         this.refresh();
+    }
+
+    async editFile(node: CustomFileNode) {
+        try {
+            const document = await vscode.workspace.openTextDocument(vscode.Uri.file(node.path));
+            await vscode.window.showTextDocument(document);
+        } catch (error) {
+            console.error(error);
+            vscode.window.showErrorMessage(`Error opening file: ${error.message}`);
+        }
+    }
+
+    private getFilePath(element: CustomFileNode): string {
+        return `${this.rootPath}/${element.label}`;
     }
 }
 
@@ -162,6 +230,8 @@ export function activate(context: vscode.ExtensionContext) {
     let selectedTemplate: Template | undefined;
     let fileExplorerProvider: FileExplorerProvider;
     vscode.commands.registerCommand('template.add', async () => {
+        // query to select a template folder or a project for make documentation
+
         const options: vscode.OpenDialogOptions = {
             canSelectMany: false,
             openLabel: "select a folder with templates",
@@ -240,7 +310,7 @@ export function activate(context: vscode.ExtensionContext) {
             });
     }
     );
-    vscode.commands.registerCommand('low-code-generator.generate', () => {
+    vscode.commands.registerCommand('template-generator-pro.generate', () => {
         const generateOptions = [
             'Generate selected files',
             'Generate project'
@@ -258,11 +328,11 @@ export function activate(context: vscode.ExtensionContext) {
                 generateLowCode(selectedTemplate, fileExplorerProvider, undefined, type);
             });
     });
-    vscode.commands.registerCommand('low-code-generator.getSelectedFiles', () => {
+    vscode.commands.registerCommand('template-generator-pro.getSelectedFiles', () => {
         const test = fileExplorerProvider.getSelectedFiles();
         vscode.window.showInformationMessage(test.toString());
     })
-    // vscode.commands.registerCommand('low-code-generator.generate', async () => {
+    // vscode.commands.registerCommand('template-generator-pro.generate', async () => {
     //     await generateLowCode(selectedTemplate, fileExplorerProvider, undefined);
     // });
 
@@ -325,130 +395,320 @@ function findMatchesInFile(filePath) {
     return matches.map(match => match[1]);
 }
 
-let matches = new Set();
-function findPatternsInDirectory(directoryPath) {
 
+let matches = new Set<string>();
+
+function findPatternsInDirectory(directoryPath: string): Set<string> {
+    matches = new Set<string>(); // Reiniciamos el Set para cada búsqueda
     const items = fs.readdirSync(directoryPath);
     for (const item of items) {
         const fullPath = pathF.join(directoryPath, item);
         const stats = fs.statSync(fullPath);
 
-        // Si es un directorio, hacer una búsqueda recursiva
         if (stats.isDirectory()) {
             const nameMatches = [...item.matchAll(pattern)].map(match => match[1]);
-
             matches = new Set([...matches, ...nameMatches]);
-            const dirMatches = findPatternsInDirectory(fullPath);
+            findPatternsInDirectory(fullPath);
         } else {
-            // Si es un archivo, buscar patrones en el contenido del archivo
             const fileMatches = findMatchesInFile(fullPath);
             matches = new Set([...matches, ...fileMatches]);
-
-            // También buscar patrones en el nombre del archivo
             const nameMatches = [...item.matchAll(pattern)].map(match => match[1]);
             matches = new Set([...matches, ...nameMatches]);
         }
     }
-
     return matches;
 }
+
+
 function capitalize(text) {
     return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 }
 
 async function generateLowCode(selectedTemplate: Template | undefined, fileExplorerProvider: FileExplorerProvider, targetPath: string, type = 'PROJECT') {
+    console.log('Starting generation with:', { type, targetPath });
+
     if (selectedTemplate === undefined) {
         vscode.window.showErrorMessage('Not exist a template selected');
+        return;
     }
+    console.log('Template selected:', selectedTemplate);
+
     const selectedFiles = fileExplorerProvider.getSelectedFiles();
+    console.log('Selected files:', selectedFiles);
+
     if (selectedFiles.length === 0) {
         vscode.window.showErrorMessage('Not exist files selected');
         return;
     }
 
     const copyTemplatePath = __dirname + "/template";
-    const templatePath = selectedTemplate.path
+    const templatePath = selectedTemplate.path;
+    console.log('Paths:', { copyTemplatePath, templatePath });
+
     try {
         fse.removeSync(copyTemplatePath);
         selectedFiles.forEach(file => {
             const fileName = file.replace(templatePath, '');
             const targetFile = `${copyTemplatePath}${fileName}`;
+            console.log('Copying file:', { from: file, to: targetFile });
             fse.copySync(file, targetFile, { overwrite: true });
         });
-    } catch (error) {
-        console.error(error);
-    }
-    if (!targetPath && type === 'PROJECT') {
-        const options: vscode.OpenDialogOptions = {
-            defaultUri: vscode.workspace.workspaceFolders[0].uri,
-            canSelectMany: false,
-            openLabel: "select a folder to generate code",
-            canSelectFolders: true,
-            canSelectFiles: false,
-            title: 'select folder'
-        };
-        const folderPath = await vscode.window.showOpenDialog(options);
-        if (!folderPath || folderPath.length !== 1) {
-            return;
+
+        // ... resto del código ...
+
+        const results = findPatternsInDirectory(copyTemplatePath);
+        console.log('Found patterns:', Array.from(results));
+
+        const parametersArray = Array.from(results) as string[];
+        const parameters = await showParametersInputBox(parametersArray, type);
+        console.log('User input parameters:', parameters);
+
+        if (parameters) {
+            console.log('Generating with parameters:', {
+                targetPath: targetPath ?? `${vscode.workspace.workspaceFolders[0].uri.path}`,
+                parameters
+            });
+
+            generateTemplateGenerator(
+                targetPath ?? `${vscode.workspace.workspaceFolders[0].uri.path}`,
+                parameters
+            );
+
+            vscode.window.showInformationMessage('Files generated successfully!');
         }
-        targetPath = folderPath[0].path;
-    }
-    let project;
-    let module;
-    let entity;
-    const results = findPatternsInDirectory(copyTemplatePath);
 
-    switch (type) {
-        case 'PROJECT':
-            project = await vscode.window.showInputBox({
-                placeHolder: "Enter name for project"
-            });
-            if (!project) {
-                return;
+    } catch (error) {
+        console.error('Error in generation:', error);
+        vscode.window.showErrorMessage('Error generating files: ' + error.message);
+    }
+}
+
+
+async function showParametersInputBox(parameters: string[], type: string): Promise<{ slot: string; slotValue: string; }[]> {
+    const panel = vscode.window.createWebviewPanel(
+        'templateParameters',
+        'Template Parameters',
+        vscode.ViewColumn.One,
+        { 
+            enableScripts: true,
+            retainContextWhenHidden: true
+        }
+    );
+
+    panel.webview.html = `<!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            :root {
+                --border-radius: 6px;
+                --spacing: 24px;
+                --min-width: 600px;
+                --max-width: 1200px;
             }
-            generateTemplateGenerator(
-                `${vscode.workspace.workspaceFolders[0].uri.path}/__project__(snakeCase)`
-                , [
-                    { slot: '__project__', slotValue: project },
-                ]);
-            break;
-        case 'ONLY_SELECTED':
-            let slots = [];
-            for (const iterator of results) {
-                entity = await vscode.window.showInputBox({
-                    placeHolder: `Enter name for ${capitalize(iterator)}`,
+            
+            body { 
+                padding: 0;
+                margin: 0;
+                color: var(--vscode-foreground);
+                font-family: var(--vscode-font-family);
+                background: var(--vscode-editor-background);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .container {
+                background: var(--vscode-sideBar-background);
+                border-radius: var(--border-radius);
+                padding: var(--spacing);
+                width: clamp(var(--min-width), 90vw, var(--max-width));
+                margin: var(--spacing);
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            
+            @media (max-width: 640px) {
+                :root {
+                    --min-width: 95vw;
+                }
+                .container {
+                    margin: 10px;
+                    padding: 16px;
+                }
+            }
+            
+            .title {
+                margin-bottom: var(--spacing);
+                font-size: 1.4em;
+                color: var(--vscode-foreground);
+                font-weight: 600;
+                text-align: center;
+                border-bottom: 1px solid var(--vscode-input-border);
+                padding-bottom: 16px;
+            }
+            
+            .form-group {
+                margin-bottom: 24px;
+                background: var(--vscode-editor-background);
+                padding: 16px;
+                border-radius: var(--border-radius);
+            }
+            
+            label {
+                display: block;
+                margin-bottom: 8px;
+                font-weight: 500;
+                color: var(--vscode-input-foreground);
+            }
+            
+            input {
+                width: 100%;
+                padding: 10px 12px;
+                border: 1px solid var(--vscode-input-border);
+                background: var(--vscode-input-background);
+                color: var(--vscode-input-foreground);
+                border-radius: var(--border-radius);
+                box-sizing: border-box;
+                font-size: 14px;
+                transition: border-color 0.2s ease;
+            }
+            
+            input:focus {
+                outline: none;
+                border-color: var(--vscode-focusBorder);
+            }
+            
+            input::placeholder {
+                color: var(--vscode-input-placeholderForeground);
+                opacity: 0.7;
+            }
+            
+            .button-container {
+                text-align: center;
+                margin: var(--spacing) 0;
+                padding-bottom: var(--spacing);
+                border-bottom: 1px solid var(--vscode-input-border);
+            }
+            
+            button {
+                background: var(--vscode-button-background);
+                color: var(--vscode-button-foreground);
+                border: none;
+                padding: 10px 24px;
+                cursor: pointer;
+                border-radius: var(--border-radius);
+                font-size: 14px;
+                font-weight: 500;
+                transition: background-color 0.2s ease;
+                min-width: 120px;
+            }
+            
+            button:hover {
+                background: var(--vscode-button-hoverBackground);
+            }
+            
+            button:active {
+                transform: translateY(1px);
+            }
+            
+            .required-field {
+                color: var(--vscode-inputValidation-errorBorder);
+                margin-left: 4px;
+            }
+
+            .description-text {
+                background-color: #2d2d2d;
+                color: #d4d4d4;
+                font-family: "Courier New", Courier, monospace;
+                font-size: 12px;
+                line-height: 1.5;
+                padding: 15px;
+                border-radius: 8px;
+                border: 1px solid #3c3c3c;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                white-space: pre-line;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="title">Template Pro Parameters</div>
+            <form id="parametersForm">
+                ${parameters.map(param => `
+                    <div class="form-group">
+                        <label for="${param}">
+                            ${param}
+                            <span class="required-field">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="${param}" 
+                            name="${param}" 
+                            required 
+                            placeholder="Enter value for ${param}"
+                            autocomplete="off"
+                        >
+                    </div>
+                `).join('')}
+                <div class="button-container">
+                    <button type="submit">Generate Code</button>
+                </div>
+                <div class="description-text">
+                    endpointName: The name of your API endpoint (e.g., users --> "mUsersNew" , orders --> "mOrdersList")
+                    dbType: Database type for this endpoint (e.g., "main", "admin")
+                    currentFolderName: Name of the current working directory where the code will be generated
+                    operationFolderName: Folder name for the operation (e.g., "create", "update", "delete", "list", "new", "new")
+                    dbTypeLetter: Single letter identifier for database type (e.g., "M" for MongoDB, "P" for PostgreSQL)
+                </div>
+            </form>
+        </div>
+        <script>
+            const vscode = acquireVsCodeApi();
+            
+            // Adjust container width on resize
+            function adjustContainerSize() {
+                const container = document.querySelector('.container');
+                const minWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--min-width'));
+                const maxWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--max-width'));
+                const idealWidth = Math.min(Math.max(window.innerWidth * 0.9, minWidth), maxWidth);
+                container.style.width = idealWidth + 'px';
+            }
+
+            window.addEventListener('resize', adjustContainerSize);
+            adjustContainerSize(); // Initial adjustment
+            
+            document.getElementById('parametersForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const parameters = [];
+                
+                formData.forEach((value, key) => {
+                    parameters.push({ 
+                        slot: \`__\${key}__\`, 
+                        slotValue: String(value).trim() 
+                    });
                 });
-                slots.push({ slot: `__${iterator}__`, slotValue: entity })
-            }
-            if (!entity) {
-                return;
-            }
-            generateTemplateGenerator(
-                targetPath ?? `${vscode.workspace.workspaceFolders[0].uri.path}`
-                , slots);
-            break;
-        case 'MODULE':
-            module = await vscode.window.showInputBox({
-                placeHolder: "Enter name for module"
+                
+                vscode.postMessage({ parameters });
             });
-            if (!module) {
-                return;
+            
+            // Auto-focus first input
+            const firstInput = document.querySelector('input');
+            if (firstInput) {
+                firstInput.focus();
             }
-            generateTemplateGenerator(
-                `${targetPath}/__module__(snakeCase)/__entity__(snakeCase)`
-                , [
-                    { slot: '__entity__', slotValue: entity },
-                    { slot: '__module__', slotValue: module }
-                ]);
-            break;
+        </script>
+    </body>
+    </html>`;
 
-        default:
-            break;
-    }
-
-
-    // generateTemplateGenerator(targetPath, entity, module)
-    vscode.window.showInformationMessage('Files generated');
-
-    console.log("Hello World!")
+    return new Promise<{ slot: string; slotValue: string; }[]>((resolve) => {
+        panel.webview.onDidReceiveMessage(
+            message => {
+                panel.dispose();
+                resolve(message.parameters);
+            },
+            undefined,
+            []
+        );
+    });
 }

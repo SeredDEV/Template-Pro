@@ -36,6 +36,9 @@ export class Storage {
     const newList = list.filter(item => !name.includes(item.name));
     this.memento.update(this.key, newList);
   }
+  deleteAll(){
+    this.memento.update(this.key, []);
+  }
 }
 
 export class DefaultTemplateStorage {
